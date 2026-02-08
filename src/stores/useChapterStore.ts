@@ -11,6 +11,7 @@ const CHAPTER_COLORS = [
 interface ChapterStore {
   chapters: Chapter[];
   hoursPerDay: number;
+  setChapters: (chapters: Chapter[]) => void;
   addChapter: (chapter: { name: string; startDate: string; endDate: string; color?: string; description?: string; tasks?: string[] }) => string;
   updateChapter: (id: string, updates: Partial<Omit<Chapter, 'id' | 'createdAt'>>) => void;
   deleteChapter: (id: string) => void;
@@ -23,6 +24,10 @@ export const useChapterStore = create<ChapterStore>()(
     (set, get) => ({
       chapters: [],
       hoursPerDay: 16,
+
+      setChapters: (chapters) => {
+        set({ chapters });
+      },
 
       addChapter: (chapter) => {
         const id = uuidv4();

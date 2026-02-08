@@ -5,7 +5,8 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useCategoryStore } from '@/stores/useCategoryStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 import { useTimeEntryStore } from '@/stores/useTimeEntryStore';
-import type { Category, TodoItem, TimeEntry } from '@/types';
+import { useChapterStore } from '@/stores/useChapterStore';
+import type { Category, TodoItem, TimeEntry, Chapter } from '@/types';
 
 type CategoryRow = {
   id: string;
@@ -35,6 +36,22 @@ type TimeEntryRow = {
   start_time: string;
   end_time: string;
   duration_minutes: number;
+};
+
+type ChapterRow = {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  color: string;
+  description: string | null;
+  tasks: string[] | null;
+  created_at: string;
+};
+
+type SettingRow = {
+  key: string;
+  value: number;
 };
 
 const toCategoryRow = (cat: Category): CategoryRow => ({
@@ -97,8 +114,30 @@ const fromEntryRow = (row: TimeEntryRow) => ({
   durationMinutes: row.duration_minutes,
 });
 
+const toChapterRow = (chapter: Chapter): ChapterRow => ({
+  id: chapter.id,
+  name: chapter.name,
+  start_date: chapter.startDate,
+  end_date: chapter.endDate,
+  color: chapter.color,
+  description: chapter.description ?? null,
+  tasks: chapter.tasks ?? [],
+  created_at: chapter.createdAt,
+});
+
+const fromChapterRow = (row: ChapterRow): Chapter => ({
+  id: row.id,
+  name: row.name,
+  startDate: row.start_date,
+  endDate: row.end_date,
+  color: row.color,
+  description: row.description ?? undefined,
+  tasks: row.tasks ?? [],
+  createdAt: row.created_at,
+});
+
 async function syncTable<Row extends { id: string }>(
-  table: 'categories' | 'todos' | 'time_entries',
+  table: 'categories' | 'todos' | 'time_entries' | 'chapters',
   rows: Row[],
 ) {
   if (!supabase) return;
@@ -121,6 +160,7 @@ export default function SupabaseBootstrap() {
   const { categories, setCategories } = useCategoryStore();
   const { todos, setTodos } = useTodoStore();
   const { entries, setEntries } = useTimeEntryStore();
+  const { chapters, setChapters, hoursPerDay, setHoursPerDay } = useChapterStore();
   const readyRef = useRef(false);
 
   useEffect(() => {
@@ -129,10 +169,12 @@ export default function SupabaseBootstrap() {
 
     const bootstrap = async () => {
       if (!supabase) return;
-      const [catRes, todoRes, entryRes] = await Promise.all([
+      const [catRes, todoRes, entryRes, chapterRes, settingsRes] = await Promise.all([
         supabase.from('categories').select('*'),
         supabase.from('todos').select('*'),
         supabase.from('time_entries').select('*'),
+        supabase.from('chapters').select('*'),
+        supabase.from('app_settings').select('*').in('key', ['hours_per_day']),
       ]);
 
       if (cancelled) return;
@@ -153,6 +195,21 @@ export default function SupabaseBootstrap() {
         setEntries(entryRes.data.map(fromEntryRow));
       } else if (entries.length > 0) {
         await supabase.from('time_entries').upsert(entries.map(toEntryRow), { onConflict: 'id' });
+      }
+
+      if (chapterRes.data && chapterRes.data.length > 0) {
+        setChapters(chapterRes.data.map(fromChapterRow));
+      } else if (chapters.length > 0) {
+        await supabase.from('chapters').upsert(chapters.map(toChapterRow), { onConflict: 'id' });
+      }
+
+      if (settingsRes.data && settingsRes.data.length > 0) {
+        const hoursSetting = settingsRes.data.find((s) => s.key === 'hours_per_day');
+        if (hoursSetting) setHoursPerDay(Number(hoursSetting.value));
+      } else if (Number.isFinite(hoursPerDay)) {
+        await supabase
+          .from('app_settings')
+          .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
       }
 
       readyRef.current = true;
@@ -178,6 +235,19 @@ export default function SupabaseBootstrap() {
     if (!readyRef.current || !isSupabaseConfigured) return;
     void syncTable('time_entries', entries.map(toEntryRow));
   }, [entries]);
+
+  useEffect(() => {
+    if (!readyRef.current || !isSupabaseConfigured) return;
+    void syncTable('chapters', chapters.map(toChapterRow));
+  }, [chapters]);
+
+  useEffect(() => {
+    if (!readyRef.current || !isSupabaseConfigured) return;
+    if (!supabase) return;
+    void supabase
+      .from('app_settings')
+      .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+  }, [hoursPerDay]);
 
   return null;
 }
