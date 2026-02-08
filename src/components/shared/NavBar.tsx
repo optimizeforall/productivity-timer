@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useSyncStatusStore } from '@/stores/useSyncStatusStore';
 
 const NAV_ITEMS = [
   { href: '/grid', label: 'Grid', icon: '▦' },
@@ -13,6 +14,14 @@ const NAV_ITEMS = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const syncStatus = useSyncStatusStore((state) => state.status);
+
+  const syncClasses = {
+    idle: 'bg-muted shadow-none',
+    syncing: 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]',
+    saved: 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]',
+    error: 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.8)]',
+  } as const;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-card-border bg-background/90 backdrop-blur-md">
@@ -21,7 +30,11 @@ export default function NavBar() {
           <Image src="/favicon.ico" alt="PT" width={24} height={24} className="rounded" />
           <span>PT</span>
         </Link>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 rounded-full transition-all ${syncClasses[syncStatus]}`}
+            title={`Sync: ${syncStatus}`}
+          />
           {NAV_ITEMS.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (

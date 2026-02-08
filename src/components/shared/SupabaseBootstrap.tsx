@@ -6,6 +6,7 @@ import { useCategoryStore } from '@/stores/useCategoryStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 import { useTimeEntryStore } from '@/stores/useTimeEntryStore';
 import { useChapterStore } from '@/stores/useChapterStore';
+import { useSyncStatusStore } from '@/stores/useSyncStatusStore';
 import type { Category, TodoItem, TimeEntry, Chapter } from '@/types';
 
 type CategoryRow = {
@@ -140,9 +141,11 @@ async function syncTable<Row extends { id: string }>(
   table: 'categories' | 'todos' | 'time_entries' | 'chapters',
   rows: Row[],
 ) {
-  if (!supabase) return;
+  if (!supabase) return false;
+  let ok = true;
   const { data: remoteIds, error: fetchError } = await supabase.from(table).select('id');
   if (fetchError) {
+    ok = false;
     console.error(`[Supabase] Failed to fetch ${table} ids`, fetchError);
   } else if (remoteIds) {
     const localIds = new Set(rows.map((r) => r.id));
@@ -152,6 +155,7 @@ async function syncTable<Row extends { id: string }>(
     if (toDelete.length > 0) {
       const { error: deleteError } = await supabase.from(table).delete().in('id', toDelete);
       if (deleteError) {
+        ok = false;
         console.error(`[Supabase] Failed to delete ${table} rows`, deleteError);
       }
     }
@@ -159,9 +163,11 @@ async function syncTable<Row extends { id: string }>(
   if (rows.length > 0) {
     const { error: upsertError } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
     if (upsertError) {
+      ok = false;
       console.error(`[Supabase] Failed to upsert ${table}`, upsertError);
     }
   }
+  return ok;
 }
 
 export default function SupabaseBootstrap() {
@@ -169,6 +175,7 @@ export default function SupabaseBootstrap() {
   const { todos, setTodos } = useTodoStore();
   const { entries, setEntries } = useTimeEntryStore();
   const { chapters, setChapters, hoursPerDay, setHoursPerDay } = useChapterStore();
+  const { setStatus } = useSyncStatusStore();
   const readyRef = useRef(false);
 
   useEffect(() => {
@@ -177,6 +184,7 @@ export default function SupabaseBootstrap() {
 
     const bootstrap = async () => {
       if (!supabase) return;
+      setStatus('syncing');
       const [catRes, todoRes, entryRes, chapterRes, settingsRes] = await Promise.all([
         supabase.from('categories').select('*'),
         supabase.from('todos').select('*'),
@@ -185,6 +193,9 @@ export default function SupabaseBootstrap() {
         supabase.from('app_settings').select('*').in('key', ['hours_per_day']),
       ]);
 
+      const hadSelectError = Boolean(
+        catRes.error || todoRes.error || entryRes.error || chapterRes.error || settingsRes.error
+      );
       if (catRes.error) console.error('[Supabase] categories select error', catRes.error);
       if (todoRes.error) console.error('[Supabase] todos select error', todoRes.error);
       if (entryRes.error) console.error('[Supabase] time_entries select error', entryRes.error);
@@ -231,6 +242,7 @@ export default function SupabaseBootstrap() {
         if (error) console.error('[Supabase] app_settings upsert error', error);
       }
 
+      setStatus(hadSelectError ? 'error' : 'saved');
       readyRef.current = true;
     };
 
@@ -242,33 +254,78 @@ export default function SupabaseBootstrap() {
 
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
-    void syncTable('categories', categories.map(toCategoryRow));
+    let cancelled = false;
+    const run = async () => {
+      setStatus('syncing');
+      const ok = await syncTable('categories', categories.map(toCategoryRow));
+      if (!cancelled) setStatus(ok ? 'saved' : 'error');
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [categories]);
 
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
-    void syncTable('todos', todos.map(toTodoRow));
+    let cancelled = false;
+    const run = async () => {
+      setStatus('syncing');
+      const ok = await syncTable('todos', todos.map(toTodoRow));
+      if (!cancelled) setStatus(ok ? 'saved' : 'error');
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [todos]);
 
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
-    void syncTable('time_entries', entries.map(toEntryRow));
+    let cancelled = false;
+    const run = async () => {
+      setStatus('syncing');
+      const ok = await syncTable('time_entries', entries.map(toEntryRow));
+      if (!cancelled) setStatus(ok ? 'saved' : 'error');
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [entries]);
 
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
-    void syncTable('chapters', chapters.map(toChapterRow));
+    let cancelled = false;
+    const run = async () => {
+      setStatus('syncing');
+      const ok = await syncTable('chapters', chapters.map(toChapterRow));
+      if (!cancelled) setStatus(ok ? 'saved' : 'error');
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [chapters]);
 
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
     if (!supabase) return;
-    void supabase
-      .from('app_settings')
-      .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' })
-      .then(({ error }) => {
-        if (error) console.error('[Supabase] app_settings upsert error', error);
-      });
+    let cancelled = false;
+    const run = async () => {
+      setStatus('syncing');
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+      if (error) {
+        console.error('[Supabase] app_settings upsert error', error);
+      }
+      if (!cancelled) setStatus(error ? 'error' : 'saved');
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [hoursPerDay]);
 
   return null;
