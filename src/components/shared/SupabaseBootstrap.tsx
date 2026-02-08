@@ -128,6 +128,7 @@ export default function SupabaseBootstrap() {
     let cancelled = false;
 
     const bootstrap = async () => {
+      if (!supabase) return;
       const [catRes, todoRes, entryRes] = await Promise.all([
         supabase.from('categories').select('*'),
         supabase.from('todos').select('*'),
