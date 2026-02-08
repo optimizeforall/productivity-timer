@@ -141,7 +141,11 @@ async function syncTable<Row extends { id: string }>(
   rows: Row[],
 ) {
   if (!supabase) return;
-  const { data: remoteIds } = await supabase.from(table).select('id');
+  const { data: remoteIds, error: fetchError } = await supabase.from(table).select('id');
+  if (fetchError) {
+    console.error(`[Supabase] Failed to fetch ${table} ids`, fetchError);
+    return;
+  }
   if (remoteIds) {
     const localIds = new Set(rows.map((r) => r.id));
     const toDelete = remoteIds
@@ -152,7 +156,10 @@ async function syncTable<Row extends { id: string }>(
     }
   }
   if (rows.length > 0) {
-    await supabase.from(table).upsert(rows, { onConflict: 'id' });
+    const { error: upsertError } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
+    if (upsertError) {
+      console.error(`[Supabase] Failed to upsert ${table}`, upsertError);
+    }
   }
 }
 
@@ -177,39 +184,50 @@ export default function SupabaseBootstrap() {
         supabase.from('app_settings').select('*').in('key', ['hours_per_day']),
       ]);
 
+      if (catRes.error) console.error('[Supabase] categories select error', catRes.error);
+      if (todoRes.error) console.error('[Supabase] todos select error', todoRes.error);
+      if (entryRes.error) console.error('[Supabase] time_entries select error', entryRes.error);
+      if (chapterRes.error) console.error('[Supabase] chapters select error', chapterRes.error);
+      if (settingsRes.error) console.error('[Supabase] app_settings select error', settingsRes.error);
+
       if (cancelled) return;
 
       if (catRes.data && catRes.data.length > 0) {
         setCategories(catRes.data.map(fromCategoryRow));
       } else if (categories.length > 0) {
-        await supabase.from('categories').upsert(categories.map(toCategoryRow), { onConflict: 'id' });
+        const { error } = await supabase.from('categories').upsert(categories.map(toCategoryRow), { onConflict: 'id' });
+        if (error) console.error('[Supabase] categories upsert error', error);
       }
 
       if (todoRes.data && todoRes.data.length > 0) {
         setTodos(todoRes.data.map(fromTodoRow));
       } else if (todos.length > 0) {
-        await supabase.from('todos').upsert(todos.map(toTodoRow), { onConflict: 'id' });
+        const { error } = await supabase.from('todos').upsert(todos.map(toTodoRow), { onConflict: 'id' });
+        if (error) console.error('[Supabase] todos upsert error', error);
       }
 
       if (entryRes.data && entryRes.data.length > 0) {
         setEntries(entryRes.data.map(fromEntryRow));
       } else if (entries.length > 0) {
-        await supabase.from('time_entries').upsert(entries.map(toEntryRow), { onConflict: 'id' });
+        const { error } = await supabase.from('time_entries').upsert(entries.map(toEntryRow), { onConflict: 'id' });
+        if (error) console.error('[Supabase] time_entries upsert error', error);
       }
 
       if (chapterRes.data && chapterRes.data.length > 0) {
         setChapters(chapterRes.data.map(fromChapterRow));
       } else if (chapters.length > 0) {
-        await supabase.from('chapters').upsert(chapters.map(toChapterRow), { onConflict: 'id' });
+        const { error } = await supabase.from('chapters').upsert(chapters.map(toChapterRow), { onConflict: 'id' });
+        if (error) console.error('[Supabase] chapters upsert error', error);
       }
 
       if (settingsRes.data && settingsRes.data.length > 0) {
         const hoursSetting = settingsRes.data.find((s) => s.key === 'hours_per_day');
         if (hoursSetting) setHoursPerDay(Number(hoursSetting.value));
       } else if (Number.isFinite(hoursPerDay)) {
-        await supabase
+        const { error } = await supabase
           .from('app_settings')
           .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+        if (error) console.error('[Supabase] app_settings upsert error', error);
       }
 
       readyRef.current = true;
@@ -246,7 +264,10 @@ export default function SupabaseBootstrap() {
     if (!supabase) return;
     void supabase
       .from('app_settings')
-      .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+      .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' })
+      .then(({ error }) => {
+        if (error) console.error('[Supabase] app_settings upsert error', error);
+      });
   }, [hoursPerDay]);
 
   return null;
