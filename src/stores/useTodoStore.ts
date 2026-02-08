@@ -5,6 +5,7 @@ import type { TodoItem } from '@/types';
 
 interface TodoStore {
   todos: TodoItem[];
+  setTodos: (todos: TodoItem[]) => void;
   addTodo: (todo: Omit<TodoItem, 'id' | 'completed' | 'createdAt' | 'completedAt'>) => string;
   updateTodo: (id: string, updates: Partial<Omit<TodoItem, 'id' | 'createdAt'>>) => void;
   deleteTodo: (id: string) => void;
@@ -18,6 +19,10 @@ export const useTodoStore = create<TodoStore>()(
   persist(
     (set, get) => ({
       todos: [],
+
+      setTodos: (todos) => {
+        set({ todos });
+      },
 
       addTodo: (todo) => {
         const id = uuidv4();

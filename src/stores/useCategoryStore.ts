@@ -9,6 +9,7 @@ const DEFAULT_CATEGORIES: Category[] = [
 
 interface CategoryStore {
   categories: Category[];
+  setCategories: (categories: Category[]) => void;
   addCategory: (category: Omit<Category, 'id'>) => string;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;
   deleteCategory: (id: string) => void;
@@ -19,6 +20,10 @@ export const useCategoryStore = create<CategoryStore>()(
   persist(
     (set, get) => ({
       categories: DEFAULT_CATEGORIES,
+
+      setCategories: (categories) => {
+        set({ categories });
+      },
 
       addCategory: (category) => {
         const id = uuidv4();

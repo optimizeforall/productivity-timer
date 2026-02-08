@@ -5,6 +5,7 @@ import type { TimeEntry } from '@/types';
 
 interface TimeEntryStore {
   entries: TimeEntry[];
+  setEntries: (entries: TimeEntry[]) => void;
   addEntry: (entry: Omit<TimeEntry, 'id'>) => string;
   updateEntry: (id: string, updates: Partial<Omit<TimeEntry, 'id'>>) => void;
   deleteEntry: (id: string) => void;
@@ -17,6 +18,10 @@ export const useTimeEntryStore = create<TimeEntryStore>()(
   persist(
     (set, get) => ({
       entries: [],
+
+      setEntries: (entries) => {
+        set({ entries });
+      },
 
       addEntry: (entry) => {
         const id = uuidv4();

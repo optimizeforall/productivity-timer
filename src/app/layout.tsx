@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "@/components/shared/NavBar";
+import SupabaseBootstrap from "@/components/shared/SupabaseBootstrap";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
+        <SupabaseBootstrap />
         <NavBar />
         <main className="mx-auto max-w-6xl px-4 py-6">
           {children}
