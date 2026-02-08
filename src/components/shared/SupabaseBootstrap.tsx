@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useCategoryStore } from '@/stores/useCategoryStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 import { useTimeEntryStore } from '@/stores/useTimeEntryStore';
+import type { Category, TodoItem, TimeEntry } from '@/types';
 
 type CategoryRow = {
   id: string;
@@ -36,7 +37,7 @@ type TimeEntryRow = {
   duration_minutes: number;
 };
 
-const toCategoryRow = (cat: ReturnType<typeof useCategoryStore>['categories'][number]): CategoryRow => ({
+const toCategoryRow = (cat: Category): CategoryRow => ({
   id: cat.id,
   name: cat.name,
   abbreviation: cat.abbreviation,
@@ -52,7 +53,7 @@ const fromCategoryRow = (row: CategoryRow) => ({
   isDefault: Boolean(row.is_default),
 });
 
-const toTodoRow = (todo: ReturnType<typeof useTodoStore>['todos'][number]): TodoRow => ({
+const toTodoRow = (todo: TodoItem): TodoRow => ({
   id: todo.id,
   title: todo.title,
   description: todo.description ?? null,
@@ -74,7 +75,7 @@ const fromTodoRow = (row: TodoRow) => ({
   completedAt: row.completed_at ?? undefined,
 });
 
-const toEntryRow = (entry: ReturnType<typeof useTimeEntryStore>['entries'][number]): TimeEntryRow => ({
+const toEntryRow = (entry: TimeEntry): TimeEntryRow => ({
   id: entry.id,
   category_id: entry.categoryId,
   todo_id: entry.todoId ?? null,
