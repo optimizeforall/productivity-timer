@@ -1,0 +1,131 @@
+'use client';
+
+import { useState } from 'react';
+import type { TimeEntry, Category } from '@/types';
+
+interface DayColumnProps {
+  dayLabel: string;
+  entries: TimeEntry[];
+  categories: Category[];
+  hoursPerDay: number;
+  maxHoursDisplay: number;
+  isToday?: boolean;
+  onClick?: () => void;
+}
+
+export default function DayColumn({
+  dayLabel,
+  entries,
+  categories,
+  hoursPerDay,
+  maxHoursDisplay,
+  isToday,
+  onClick,
+}: DayColumnProps) {
+  const [hoveredEntryId, setHoveredEntryId] = useState<string | null>(null);
+  const [clickedEntryId, setClickedEntryId] = useState<string | null>(null);
+
+  // Sort entries by startTime ascending (earliest first = bottom of stack)
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
+  const totalMinutes = sorted.reduce((sum, e) => sum + e.durationMinutes, 0);
+  const totalHours = totalMinutes / 60;
+  const maxMinutes = maxHoursDisplay * 60;
+  const targetPercent = (hoursPerDay / maxHoursDisplay) * 100;
+
+  const handleEntryClick = (entryId: string) => {
+    setClickedEntryId(clickedEntryId === entryId ? null : entryId);
+    onClick?.();
+  };
+
+  return (
+    <div
+      className="flex flex-col items-center cursor-pointer group"
+      onClick={onClick}
+    >
+      {/* Bar container */}
+      <div
+        className="relative flex w-full flex-col-reverse overflow-visible bg-white/[0.02] transition-colors group-hover:bg-white/[0.04]"
+        style={{ height: `${maxHoursDisplay * 16}px`, minHeight: '80px' }}
+      >
+        {/* Individual entry blocks */}
+        {sorted.map((entry) => {
+          const cat = categories.find((c) => c.id === entry.categoryId);
+          if (!cat) return null;
+          const heightPercent = Math.min((entry.durationMinutes / maxMinutes) * 100, 100);
+          const isHovered = hoveredEntryId === entry.id;
+          const isClicked = clickedEntryId === entry.id;
+
+          return (
+            <div
+              key={entry.id}
+              className="relative flex items-center justify-center shrink-0 transition-all"
+              style={{
+                height: `${heightPercent}%`,
+                backgroundColor: isHovered ? cat.color + '60' : cat.color + '40',
+                minHeight: heightPercent > 0 ? '4px' : '0px',
+              }}
+              onMouseEnter={() => setHoveredEntryId(entry.id)}
+              onMouseLeave={() => { setHoveredEntryId(null); setClickedEntryId(null); }}
+              onClick={() => handleEntryClick(entry.id)}
+            >
+              {heightPercent > 4 && (
+                <span
+                  className="text-[10px] font-bold tracking-wider truncate px-0.5"
+                  style={{ color: cat.color }}
+                >
+                  {cat.abbreviation}
+                </span>
+              )}
+
+              {/* Hover tooltip: title */}
+              {isHovered && !isClicked && (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-20 pointer-events-none">
+                  <div className="rounded bg-black/90 px-2 py-1 text-[10px] text-white whitespace-nowrap shadow-lg border border-white/10">
+                    {entry.title || cat.name}
+                  </div>
+                </div>
+              )}
+
+              {/* Click dropdown: details */}
+              {isClicked && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30">
+                  <div className="rounded-lg bg-black/95 px-3 py-2 text-[11px] text-white shadow-xl border border-white/10 whitespace-nowrap space-y-0.5 min-w-[120px]">
+                    <div className="font-medium">{entry.title || 'Untitled'}</div>
+                    {entry.description && (
+                      <div className="text-white/50 text-[10px]">{entry.description}</div>
+                    )}
+                    <div className="text-white/40 text-[10px]">
+                      {entry.durationMinutes}m &middot; {cat.name}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Target hours dotted line */}
+        <div
+          className="absolute left-0 right-0 pointer-events-none"
+          style={{
+            bottom: `${targetPercent}%`,
+            borderTop: '1px dashed rgba(255,255,255,0.2)',
+          }}
+        />
+      </div>
+
+      {/* Day label */}
+      <span className={`mt-1 text-[10px] ${isToday ? 'text-accent font-bold' : 'text-muted'}`}>
+        {dayLabel}
+      </span>
+
+      {/* Hours total */}
+      <span className="text-[10px] font-mono text-muted">
+        {totalHours.toFixed(1)}h
+      </span>
+    </div>
+  );
+}
