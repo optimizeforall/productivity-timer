@@ -144,15 +144,16 @@ async function syncTable<Row extends { id: string }>(
   const { data: remoteIds, error: fetchError } = await supabase.from(table).select('id');
   if (fetchError) {
     console.error(`[Supabase] Failed to fetch ${table} ids`, fetchError);
-    return;
-  }
-  if (remoteIds) {
+  } else if (remoteIds) {
     const localIds = new Set(rows.map((r) => r.id));
     const toDelete = remoteIds
       .map((r) => r.id)
       .filter((id) => !localIds.has(id));
     if (toDelete.length > 0) {
-      await supabase.from(table).delete().in('id', toDelete);
+      const { error: deleteError } = await supabase.from(table).delete().in('id', toDelete);
+      if (deleteError) {
+        console.error(`[Supabase] Failed to delete ${table} rows`, deleteError);
+      }
     }
   }
   if (rows.length > 0) {
