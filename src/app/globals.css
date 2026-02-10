@@ -85,6 +85,16 @@ textarea {
     filter: invert(1) brightness(1.8);
 }
 
+/* Time input clock icon - make brighter */
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(2);
+    opacity: 1;
+    cursor: pointer;
+}
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(1) brightness(2.5);
+}
+
 /* Select styling for dark mode */
 select {
     color-scheme: dark;

@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useMemo, useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import HydrationGuard from '@/components/shared/HydrationGuard';
-import { useTimeEntryStore } from '@/stores/useTimeEntryStore';
-import { useCategoryStore } from '@/stores/useCategoryStore';
-import { useChapterStore } from '@/stores/useChapterStore';
-import { buildDateForLogicalDay, getLogicalDayKey } from '@/lib/dayBoundary';
+import Link from "next/link";
+import { useMemo, useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import HydrationGuard from "@/components/shared/HydrationGuard";
+import { useTimeEntryStore } from "@/stores/useTimeEntryStore";
+import { useCategoryStore } from "@/stores/useCategoryStore";
+import { useChapterStore } from "@/stores/useChapterStore";
+import { buildDateForLogicalDay, getLogicalDayKey } from "@/lib/dayBoundary";
 
 type EntryDraft = {
   title: string;
@@ -19,8 +19,8 @@ type EntryDraft = {
 
 function toTimeInput(iso: string) {
   const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 }
 
@@ -32,16 +32,21 @@ function DayEditorContent({ date }: { date: string }) {
 
   const dayEntries = useMemo(() => {
     return entries
-      .filter((entry) => getLogicalDayKey(entry.startTime, dayEndsAtHour) === date)
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      .filter(
+        (entry) => getLogicalDayKey(entry.startTime, dayEndsAtHour) === date,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
   }, [entries, dayEndsAtHour, date]);
 
   useEffect(() => {
     const next: Record<string, EntryDraft> = {};
     dayEntries.forEach((entry) => {
       next[entry.id] = {
-        title: entry.title ?? '',
-        description: entry.description ?? '',
+        title: entry.title ?? "",
+        description: entry.description ?? "",
         categoryId: entry.categoryId,
         startTime: toTimeInput(entry.startTime),
         endTime: toTimeInput(entry.endTime),
@@ -62,13 +67,17 @@ function DayEditorContent({ date }: { date: string }) {
 
   const saveEntry = (entryId: string) => {
     const draft = drafts[entryId];
-    if (!draft || !draft.categoryId || !draft.startTime || !draft.endTime) return;
+    if (!draft || !draft.categoryId || !draft.startTime || !draft.endTime)
+      return;
     const start = buildDateForLogicalDay(date, draft.startTime, dayEndsAtHour);
     let end = buildDateForLogicalDay(date, draft.endTime, dayEndsAtHour);
     if (end.getTime() <= start.getTime()) {
       end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
     }
-    const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+    const durationMinutes = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / 60000),
+    );
     updateEntry(entryId, {
       title: draft.title.trim() || undefined,
       description: draft.description.trim() || undefined,
@@ -97,20 +106,33 @@ function DayEditorContent({ date }: { date: string }) {
           {dayEntries.map((entry) => {
             const draft = drafts[entry.id];
             if (!draft) return null;
+            const cat = categories.find((c) => c.id === draft.categoryId);
+            const catColor = cat?.color ?? "#3a3d3f";
             return (
-              <div key={entry.id} className="rounded-lg border border-card-border bg-card p-3 space-y-2">
-                <div className="grid gap-2 sm:grid-cols-2">
+              <div
+                key={entry.id}
+                className="rounded-lg border border-card-border p-3 space-y-2"
+                style={{
+                  background: `linear-gradient(135deg, ${catColor}18 0%, ${catColor}08 40%, transparent 70%)`,
+                  borderColor: `${catColor}30`,
+                }}
+              >
+                <div className="flex gap-2">
                   <input
                     type="text"
                     value={draft.title}
-                    onChange={(e) => updateDraft(entry.id, { title: e.target.value })}
+                    onChange={(e) =>
+                      updateDraft(entry.id, { title: e.target.value })
+                    }
                     placeholder="Task name"
-                    className="w-full rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
+                    className="flex-1 rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
                   />
                   <select
                     value={draft.categoryId}
-                    onChange={(e) => updateDraft(entry.id, { categoryId: e.target.value })}
-                    className="w-full rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
+                    onChange={(e) =>
+                      updateDraft(entry.id, { categoryId: e.target.value })
+                    }
+                    className="w-[200px] rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
                   >
                     <option value="">Select category</option>
                     {categories.map((cat) => (
@@ -123,7 +145,9 @@ function DayEditorContent({ date }: { date: string }) {
                 <input
                   type="text"
                   value={draft.description}
-                  onChange={(e) => updateDraft(entry.id, { description: e.target.value })}
+                  onChange={(e) =>
+                    updateDraft(entry.id, { description: e.target.value })
+                  }
                   placeholder="Description"
                   className="w-full rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
                 />
@@ -133,7 +157,9 @@ function DayEditorContent({ date }: { date: string }) {
                     <input
                       type="time"
                       value={draft.startTime}
-                      onChange={(e) => updateDraft(entry.id, { startTime: e.target.value })}
+                      onChange={(e) =>
+                        updateDraft(entry.id, { startTime: e.target.value })
+                      }
                       className="rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
                     />
                   </div>
@@ -142,7 +168,9 @@ function DayEditorContent({ date }: { date: string }) {
                     <input
                       type="time"
                       value={draft.endTime}
-                      onChange={(e) => updateDraft(entry.id, { endTime: e.target.value })}
+                      onChange={(e) =>
+                        updateDraft(entry.id, { endTime: e.target.value })
+                      }
                       className="rounded bg-background px-2 py-1.5 text-sm border border-card-border focus:outline-none focus:border-accent"
                     />
                   </div>
@@ -156,7 +184,9 @@ function DayEditorContent({ date }: { date: string }) {
                   </button>
                   <button
                     onClick={() => saveEntry(entry.id)}
-                    disabled={!draft.categoryId || !draft.startTime || !draft.endTime}
+                    disabled={
+                      !draft.categoryId || !draft.startTime || !draft.endTime
+                    }
                     className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Save
@@ -173,7 +203,7 @@ function DayEditorContent({ date }: { date: string }) {
 
 export default function DayEditorPage() {
   const params = useParams<{ date: string }>();
-  const date = params?.date ?? '';
+  const date = params?.date ?? "";
   return (
     <HydrationGuard>
       <DayEditorContent date={date} />

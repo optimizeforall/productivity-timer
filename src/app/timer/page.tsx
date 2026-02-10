@@ -18,6 +18,7 @@ function TimerContent() {
   const { categories } = useCategoryStore();
   const { getTodoById, toggleComplete } = useTodoStore();
   const queueStore = useQueueStore();
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     timerStore.categoryId ?? "",
@@ -283,14 +284,51 @@ function TimerContent() {
     <div className="flex flex-col items-center gap-8 pt-8">
       {/* Active or selected category indicator */}
       {currentCategory && (
-        <div
-          className="rounded-full px-4 py-1 text-sm font-medium transition-all"
-          style={{
-            backgroundColor: currentCategory.color + "20",
-            color: currentCategory.color,
-          }}
-        >
-          {currentCategory.name}
+        <div className="relative">
+          <button
+            onClick={() =>
+              !isIdle && setShowCategorySelector(!showCategorySelector)
+            }
+            className={`rounded-full px-4 py-1 text-sm font-medium transition-all ${
+              !isIdle ? "cursor-pointer hover:opacity-80" : ""
+            }`}
+            style={{
+              backgroundColor: currentCategory.color + "20",
+              color: currentCategory.color,
+            }}
+          >
+            {currentCategory.name}
+          </button>
+
+          {/* Category dropdown when running */}
+          {showCategorySelector && !isIdle && (
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 rounded-lg border border-card-border bg-card shadow-lg p-2 z-50 min-w-[200px]">
+              <div className="space-y-1">
+                {availableCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      timerStore.updateCategory(cat.id);
+                      setShowCategorySelector(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                      timerStore.categoryId === cat.id
+                        ? "bg-card-border text-foreground"
+                        : "hover:bg-card-border/50 text-muted"
+                    }`}
+                    style={{
+                      color:
+                        timerStore.categoryId === cat.id
+                          ? cat.color
+                          : undefined,
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

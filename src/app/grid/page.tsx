@@ -213,38 +213,45 @@ function GridContent() {
     setExpandedChapterId(null);
   };
 
-  const handleAdjustRange = useCallback(
-    (direction: "expand" | "contract") => {
-      if (!viewStart || !viewEnd) return;
+  const handleExpandLeft = useCallback(() => {
+    if (!viewStart) return;
+    const startDate = new Date(viewStart);
+    startDate.setDate(startDate.getDate() - 1); // Add 1 day to the left
+    const newStart = startDate.toISOString().split("T")[0];
+    setGridViewStart(newStart);
+    setExpandedChapterId(null);
+  }, [viewStart, setGridViewStart]);
 
-      const daysToAdjust = 7; // Adjust by 1 week at a time
-      const startDate = new Date(viewStart);
-      const endDate = new Date(viewEnd);
-
-      if (direction === "expand") {
-        // Add days to both ends
-        startDate.setDate(startDate.getDate() - daysToAdjust);
-        endDate.setDate(endDate.getDate() + daysToAdjust);
-      } else {
-        // Remove days from both ends (but keep at least 7 days total)
-        const currentDays = Math.floor(
-          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-        );
-        if (currentDays > daysToAdjust * 2 + 7) {
-          startDate.setDate(startDate.getDate() + daysToAdjust);
-          endDate.setDate(endDate.getDate() - daysToAdjust);
-        }
-      }
-
-      const newStart = startDate.toISOString().split("T")[0];
-      const newEnd = endDate.toISOString().split("T")[0];
-
+  const handleContractLeft = useCallback(() => {
+    if (!viewStart || !viewEnd) return;
+    const startDate = new Date(viewStart);
+    startDate.setDate(startDate.getDate() + 1); // Remove 1 day from the left
+    const newStart = startDate.toISOString().split("T")[0];
+    if (newStart <= viewEnd) {
       setGridViewStart(newStart);
+      setExpandedChapterId(null);
+    }
+  }, [viewStart, viewEnd, setGridViewStart]);
+
+  const handleExpandRight = useCallback(() => {
+    if (!viewEnd) return;
+    const endDate = new Date(viewEnd);
+    endDate.setDate(endDate.getDate() + 1); // Add 1 day to the right
+    const newEnd = endDate.toISOString().split("T")[0];
+    setGridViewEnd(newEnd);
+    setExpandedChapterId(null);
+  }, [viewEnd, setGridViewEnd]);
+
+  const handleContractRight = useCallback(() => {
+    if (!viewStart || !viewEnd) return;
+    const endDate = new Date(viewEnd);
+    endDate.setDate(endDate.getDate() - 1); // Remove 1 day from the right
+    const newEnd = endDate.toISOString().split("T")[0];
+    if (newEnd >= viewStart) {
       setGridViewEnd(newEnd);
       setExpandedChapterId(null);
-    },
-    [viewStart, viewEnd, setGridViewStart, setGridViewEnd],
-  );
+    }
+  }, [viewStart, viewEnd, setGridViewEnd]);
 
   const handleDeleteChapter = (chapterId: string) => {
     deleteChapter(chapterId);
@@ -538,7 +545,10 @@ function GridContent() {
                 chapters={chapters}
                 hoursPerDay={hoursPerDay}
                 dayEndsAtHour={dayEndsAtHour}
-                onAdjustRange={handleAdjustRange}
+                onExpandLeft={handleExpandLeft}
+                onContractLeft={handleContractLeft}
+                onExpandRight={handleExpandRight}
+                onContractRight={handleContractRight}
               />
             </div>
           </div>

@@ -15,7 +15,10 @@ interface HistogramGridProps {
   chapters: Chapter[];
   hoursPerDay: number;
   dayEndsAtHour: number;
-  onAdjustRange?: (direction: "expand" | "contract") => void;
+  onExpandLeft?: () => void;
+  onContractLeft?: () => void;
+  onExpandRight?: () => void;
+  onContractRight?: () => void;
 }
 
 export default function HistogramGrid({
@@ -25,7 +28,10 @@ export default function HistogramGrid({
   chapters,
   hoursPerDay,
   dayEndsAtHour,
-  onAdjustRange,
+  onExpandLeft,
+  onContractLeft,
+  onExpandRight,
+  onContractRight,
 }: HistogramGridProps) {
   const { addEntry } = useTimeEntryStore();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -230,7 +236,7 @@ export default function HistogramGrid({
       <div className="space-y-2">
         {/* Grid */}
         <div className="flex">
-          {/* Y-axis -- added pt-2 so top label doesn't clip */}
+          {/* Y-axis */}
           <div
             className="relative pr-2 text-right shrink-0 w-10 pt-2"
             style={{
@@ -278,6 +284,49 @@ export default function HistogramGrid({
           </div>
         </div>
 
+        {/* +/- controls row underneath the grid */}
+        {(onExpandLeft ||
+          onContractLeft ||
+          onExpandRight ||
+          onContractRight) && (
+          <div className="flex items-center justify-between pl-10">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onExpandLeft}
+                className="flex items-center justify-center h-5 w-5 rounded text-muted/40 hover:text-accent transition-all text-sm"
+                title="Add earlier days"
+              >
+                +
+              </button>
+              <button
+                onClick={onContractLeft}
+                disabled={colCount <= 7}
+                className="flex items-center justify-center h-5 w-5 rounded text-muted/40 hover:text-accent transition-all text-sm disabled:opacity-0 disabled:cursor-default"
+                title="Remove earliest day"
+              >
+                −
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onContractRight}
+                disabled={colCount <= 7}
+                className="flex items-center justify-center h-5 w-5 rounded text-muted/40 hover:text-accent transition-all text-sm disabled:opacity-0 disabled:cursor-default"
+                title="Remove latest day"
+              >
+                −
+              </button>
+              <button
+                onClick={onExpandRight}
+                className="flex items-center justify-center h-5 w-5 rounded text-muted/40 hover:text-accent transition-all text-sm"
+                title="Add later days"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Chapter timeline lines */}
         {chapterLines.length > 0 && (
           <div className="ml-10 space-y-1.5">
@@ -304,7 +353,7 @@ export default function HistogramGrid({
 
       {/* Selected day detail - outside scrollable area */}
       {selectedDayDate && (
-        <div className="rounded-lg border border-card-border bg-card p-4 space-y-3">
+        <div className="rounded-lg border border-card-border bg-card p-4 space-y-3 mt-8">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">
               {shortDayLabel(selectedDayDate)}
