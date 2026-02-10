@@ -11,11 +11,17 @@ const CHAPTER_COLORS = [
 interface ChapterStore {
   chapters: Chapter[];
   hoursPerDay: number;
+  dayEndsAtHour: number;
+  gridViewStart: string | null;
+  gridViewEnd: string | null;
   setChapters: (chapters: Chapter[]) => void;
   addChapter: (chapter: { name: string; startDate: string; endDate: string; color?: string; description?: string; tasks?: string[] }) => string;
   updateChapter: (id: string, updates: Partial<Omit<Chapter, 'id' | 'createdAt'>>) => void;
   deleteChapter: (id: string) => void;
   setHoursPerDay: (hours: number) => void;
+  setDayEndsAtHour: (hour: number) => void;
+  setGridViewStart: (date: string | null) => void;
+  setGridViewEnd: (date: string | null) => void;
   getNextColor: () => string;
 }
 
@@ -24,6 +30,9 @@ export const useChapterStore = create<ChapterStore>()(
     (set, get) => ({
       chapters: [],
       hoursPerDay: 16,
+      dayEndsAtHour: 0,
+      gridViewStart: null,
+      gridViewEnd: null,
 
       setChapters: (chapters) => {
         set({ chapters });
@@ -65,6 +74,18 @@ export const useChapterStore = create<ChapterStore>()(
 
       setHoursPerDay: (hours) => {
         set({ hoursPerDay: hours });
+      },
+
+      setDayEndsAtHour: (hour) => {
+        set({ dayEndsAtHour: Math.max(0, Math.min(8, Math.round(hour))) });
+      },
+
+      setGridViewStart: (date) => {
+        set({ gridViewStart: date });
+      },
+
+      setGridViewEnd: (date) => {
+        set({ gridViewEnd: date });
       },
 
       getNextColor: () => {

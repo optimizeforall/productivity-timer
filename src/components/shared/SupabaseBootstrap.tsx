@@ -55,6 +55,19 @@ type SettingRow = {
   value: number;
 };
 
+const encodeDateSetting = (value: string | null): number => {
+  if (!value) return 0;
+  const n = Number(value.replaceAll('-', ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+const decodeDateSetting = (value: number): string | null => {
+  if (!value) return null;
+  const raw = String(Math.trunc(value)).padStart(8, '0');
+  if (raw.length !== 8) return null;
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+};
+
 const toCategoryRow = (cat: Category): CategoryRow => ({
   id: cat.id,
   name: cat.name,
@@ -174,7 +187,18 @@ export default function SupabaseBootstrap() {
   const { categories, setCategories } = useCategoryStore();
   const { todos, setTodos } = useTodoStore();
   const { entries, setEntries } = useTimeEntryStore();
-  const { chapters, setChapters, hoursPerDay, setHoursPerDay } = useChapterStore();
+  const {
+    chapters,
+    setChapters,
+    hoursPerDay,
+    setHoursPerDay,
+    dayEndsAtHour,
+    setDayEndsAtHour,
+    gridViewStart,
+    setGridViewStart,
+    gridViewEnd,
+    setGridViewEnd,
+  } = useChapterStore();
   const { setStatus } = useSyncStatusStore();
   const readyRef = useRef(false);
 
@@ -190,7 +214,10 @@ export default function SupabaseBootstrap() {
         supabase.from('todos').select('*'),
         supabase.from('time_entries').select('*'),
         supabase.from('chapters').select('*'),
-        supabase.from('app_settings').select('*').in('key', ['hours_per_day']),
+        supabase
+          .from('app_settings')
+          .select('*')
+          .in('key', ['hours_per_day', 'day_ends_at_hour', 'grid_view_start', 'grid_view_end']),
       ]);
 
       const hadSelectError = Boolean(
@@ -235,10 +262,20 @@ export default function SupabaseBootstrap() {
       if (settingsRes.data && settingsRes.data.length > 0) {
         const hoursSetting = settingsRes.data.find((s) => s.key === 'hours_per_day');
         if (hoursSetting) setHoursPerDay(Number(hoursSetting.value));
+        const dayEndSetting = settingsRes.data.find((s) => s.key === 'day_ends_at_hour');
+        if (dayEndSetting) setDayEndsAtHour(Number(dayEndSetting.value));
+        const viewStartSetting = settingsRes.data.find((s) => s.key === 'grid_view_start');
+        if (viewStartSetting) setGridViewStart(decodeDateSetting(Number(viewStartSetting.value)));
+        const viewEndSetting = settingsRes.data.find((s) => s.key === 'grid_view_end');
+        if (viewEndSetting) setGridViewEnd(decodeDateSetting(Number(viewEndSetting.value)));
       } else if (Number.isFinite(hoursPerDay)) {
-        const { error } = await supabase
-          .from('app_settings')
-          .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+        const payload: SettingRow[] = [
+          { key: 'hours_per_day', value: hoursPerDay },
+          { key: 'day_ends_at_hour', value: dayEndsAtHour },
+          { key: 'grid_view_start', value: encodeDateSetting(gridViewStart) },
+          { key: 'grid_view_end', value: encodeDateSetting(gridViewEnd) },
+        ];
+        const { error } = await supabase.from('app_settings').upsert(payload, { onConflict: 'key' });
         if (error) console.error('[Supabase] app_settings upsert error', error);
       }
 
@@ -311,12 +348,17 @@ export default function SupabaseBootstrap() {
   useEffect(() => {
     if (!readyRef.current || !isSupabaseConfigured) return;
     if (!supabase) return;
+    const client = supabase;
     let cancelled = false;
     const run = async () => {
       setStatus('syncing');
-      const { error } = await supabase
-        .from('app_settings')
-        .upsert({ key: 'hours_per_day', value: hoursPerDay }, { onConflict: 'key' });
+      const payload: SettingRow[] = [
+        { key: 'hours_per_day', value: hoursPerDay },
+        { key: 'day_ends_at_hour', value: dayEndsAtHour },
+        { key: 'grid_view_start', value: encodeDateSetting(gridViewStart) },
+        { key: 'grid_view_end', value: encodeDateSetting(gridViewEnd) },
+      ];
+      const { error } = await client.from('app_settings').upsert(payload, { onConflict: 'key' });
       if (error) {
         console.error('[Supabase] app_settings upsert error', error);
       }
@@ -326,7 +368,7 @@ export default function SupabaseBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [hoursPerDay]);
+  }, [hoursPerDay, dayEndsAtHour, gridViewStart, gridViewEnd]);
 
   return null;
 }

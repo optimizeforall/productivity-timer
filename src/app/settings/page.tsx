@@ -13,7 +13,7 @@ const PRESET_COLORS = [
 
 function SettingsContent() {
   const { categories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
-  const { hoursPerDay, setHoursPerDay } = useChapterStore();
+  const { hoursPerDay, setHoursPerDay, dayEndsAtHour, setDayEndsAtHour } = useChapterStore();
 
   const [newName, setNewName] = useState('');
   const [newAbbr, setNewAbbr] = useState('');
@@ -185,6 +185,22 @@ function SettingsContent() {
               onChange={(e) => setHoursPerDay(Math.max(1, Math.min(24, parseInt(e.target.value) || 1)))}
               className="w-20 rounded bg-background px-2 py-1 text-sm text-right border border-card-border focus:outline-none focus:border-accent"
             />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm text-foreground/70">Day ends at</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={dayEndsAtHour}
+                onChange={(e) => setDayEndsAtHour(parseInt(e.target.value, 10) || 0)}
+                className="rounded bg-background px-2 py-1 text-sm border border-card-border focus:outline-none focus:border-accent"
+              >
+                {Array.from({ length: 9 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {i === 0 ? '12:00 AM' : `${i}:00 AM`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </section>

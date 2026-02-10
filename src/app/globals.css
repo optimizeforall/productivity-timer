@@ -1,57 +1,91 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f1111;
-  --foreground: #e7e9ea;
-  --card: #151718;
-  --card-border: #2a2d2f;
-  --muted: #8b8f94;
-  --accent: #f59e0b;
+    --background: #0a0e12;
+    --foreground: #e8edf3;
+    --card: #141920;
+    --card-border: #2a3340;
+    --muted: #7a8a9e;
+    --accent: #00d9ff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-border: var(--card-border);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-border: var(--card-border);
+    --color-muted: var(--muted);
+    --color-accent: var(--accent);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-mono), "SF Mono", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    font-weight: 400;
+}
+
+/* Typography improvements for productivity hacker aesthetic */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-geist-mono), "SF Mono", "Courier New", monospace;
+}
+
+/* Tech aesthetic enhancements */
+.tech-glow {
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.15);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+    width: 8px;
+    height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2d2f;
-  border-radius: 3px;
+    background: #2a3340;
+    border-radius: 4px;
+    border: 1px solid #1a2230;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3a4350;
 }
 
 /* Date input styling - make visible on dark backgrounds */
 .date-input {
-  color-scheme: dark;
+    color-scheme: dark;
 }
 .date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  opacity: 0.7;
-  cursor: pointer;
+    filter: invert(1) brightness(1.5);
+    opacity: 0.9;
+    cursor: pointer;
 }
 .date-input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+    opacity: 1;
+    filter: invert(1) brightness(1.8);
 }
 
 /* Select styling for dark mode */
 select {
-  color-scheme: dark;
+    color-scheme: dark;
 }
